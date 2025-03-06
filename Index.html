@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>حساب مواصفات المحول الكهربائي</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --secondary: #27ae60;
+            --accent: #e67e22;
+            --background: #f8f9fa;
+        }
+
+        body {
+            font-family: 'Tahoma', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: var(--background);
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: auto;
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            color: var(--primary);
+            text-align: center;
+            border-bottom: 3px solid var(--secondary);
+            padding-bottom: 15px;
+        }
+
+        .input-group {
+            margin: 20px 0;
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 15px;
+            align-items: center;
+        }
+
+        @media (max-width: 768px) {
+            .input-group {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        input, select {
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            width: 100%;
+        }
+
+        button {
+            background: var(--secondary);
+            color: white;
+            padding: 15px 25px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin: 10px 0;
+        }
+
+        button:hover {
+            opacity: 0.8;
+        }
+
+        .coil-box {
+            border: 2px solid var(--background);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+            background: #fefefe;
+            position: relative;
+        }
+
+        .delete-btn {
+            position: absolute;
+            left: 15px;
+            top: 15px;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .wire-details {
+            color: var(--accent);
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .core-specs {
+            background: #f0f8ff;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        .edit-section {
+            margin-top: 15px;
+            border-top: 1px dashed #ddd;
+            padding-top: 10px;
+        }
+
+        .edit-input-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .edit-input-group input {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid var(--primary);
+            border-radius: 5px;
+        }
+
+        .edit-btn {
+            background: var(--accent);
+            padding: 8px 15px;
+            border-radius: 5px;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        .custom-result {
+            color: var(--accent);
+            margin-top: 10px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>𓋼 حاسِب المحولات الاحترافي</h1>
+        
+        <div class="input-group">
+            <label>عرض القلب الحديدي (سم):</label>
+            <input type="number" id="coreWidth" step="0.1" value="3.8">
+        </div>
+
+        <div class="input-group">
+            <label>ارتفاع القلب (سم):</label>
+            <input type="number" id="coreHeight" step="0.1" value="1.3">
+        </div>
+
+        <div class="input-group">
+            <label>الجهد الابتدائي (V):</label>
+            <input type="number" id="primaryVoltage" value="220">
+        </div>
+
+        <div id="secondariesContainer">
+            <div class="coil-box">
+                <button class="delete-btn" onclick="this.parentElement.remove()">×</button>
+                <div class="input-group">
+                    <label>الجهد الثانوي (V):</label>
+                    <input type="number" class="secondaryVoltage" value="24">
+                </div>
+                <div class="input-group">
+                    <label>هل يوجد سنتر تاب؟</label>
+                    <select class="ct-select" onchange="toggleCT(this)">
+                        <option value="no">لا</option>
+                        <option value="yes">نعم</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <button onclick="addSecondary()">➕ إضافة ملف ثانوي</button>
+        <button onclick="calculate()">⚡ احسب الآن</button>
+
+        <div id="result"></div>
+    </div>
+
+    <script>
+        const wireTable = [
+            { diameter: 0.2, maxCurrent: 0.3 },
+            { diameter: 0.3, maxCurrent: 0.6 },
+            { diameter: 0.4, maxCurrent: 0.9 },
+            { diameter: 0.5, maxCurrent: 1.2 },
+            { diameter: 0.6, maxCurrent: 1.8 },
+            { diameter: 0.8, maxCurrent: 2.5 },
+            { diameter: 1.0, maxCurrent: 3.5 },
+            { diameter: 1.2, maxCurrent: 5.0 }
+        ];
+
+        function addSecondary() {
+            const newSecondary = document.createElement('div');
+            newSecondary.className = 'coil-box';
+            newSecondary.innerHTML = `
+                <button class="delete-btn" onclick="this.parentElement.remove()">×</button>
+                <div class="input-group">
+                    <label>الجهد الثانوي (V):</label>
+                    <input type="number" class="secondaryVoltage" value="24">
+                </div>
+                <div class="input-group">
+                    <label>هل يوجد سنتر تاب؟</label>
+                    <select class="ct-select" onchange="toggleCT(this)">
+                        <option value="no">لا</option>
+                        <option value="yes">نعم</option>
+                    </select>
+                </div>
+            `;
+            document.getElementById('secondariesContainer').appendChild(newSecondary);
+        }
+
+        function toggleCT(select) {
+            const container = select.closest('.coil-box');
+            const voltageInput = container.querySelector('.secondaryVoltage');
+            if (!voltageInput) return;
+
+            if (select.value === 'yes' && !voltageInput.dataset.original) {
+                voltageInput.dataset.original = voltageInput.value;
+                voltageInput.value = parseFloat(voltageInput.value) * 2;
+            } else if (select.value === 'no' && voltageInput.dataset.original) {
+                voltageInput.value = voltageInput.dataset.original;
+                delete voltageInput.dataset.original;
+            }
+        }
+
+        function findWireThickness(current) {
+            for(let wire of wireTable) {
+                if(wire.maxCurrent >= current) return wire.diameter;
+            }
+            return 'غير متوفر';
+        }
+
+        function findCustomWire(current) {
+            for(let wire of wireTable) {
+                if(wire.maxCurrent >= current) return wire.diameter;
+            }
+            return 'غير متوفر';
+        }
+
+        function calculate() {
+            const coreWidth = parseFloat(document.getElementById('coreWidth').value) || 0;
+            const coreHeight = parseFloat(document.getElementById('coreHeight').value) || 0;
+            const primaryVoltage = parseFloat(document.getElementById('primaryVoltage').value) || 0;
+
+            const secondaries = [];
+            const secondaryContainers = document.getElementsByClassName('coil-box');
+            
+            for (let container of secondaryContainers) {
+                const voltageInput = container.querySelector('.secondaryVoltage');
+                const ctSelect = container.querySelector('.ct-select');
+                
+                if (!voltageInput || !ctSelect) continue;
+                
+                secondaries.push({
+                    voltage: parseFloat(voltageInput.value) || 0,
+                    ct: ctSelect.value === 'yes'
+                });
+            }
+
+            const coreArea = coreWidth * coreHeight;
+            if (coreArea <= 0) {
+                alert('❗ مساحة القلب غير صالحة');
+                return;
+            }
+
+            const turnsPerVolt = 45 / coreArea;
+            const power = Math.round((coreArea / 1.1) ** 2);
+
+            let resultHTML = `
+                <div class="core-specs">
+                    <h3>𓃑 مواصفات القلب:</h3>
+                    <p>𓇼 المساحة: ${coreArea.toFixed(2)} سم²</p>
+                    <p>𓋼 القدرة: ${power} واط</p>
+                    <p>𓍯 اللفات/فولت: ${turnsPerVolt.toFixed(1)}</p>
+                </div>
+
+                <div class="coil-box">
+                    <h3>𓋼 الملف الابتدائي (${primaryVoltage}V):</h3>
+                    <p>𓇻 عدد اللفات: ${Math.round(primaryVoltage * turnsPerVolt)}</p>
+                    <p>𓃠 التيار: ${(power / primaryVoltage).toFixed(2)}A</p>
+                    <div class="wire-details">
+                        𓏲 سمك السلك: ${findWireThickness(power / primaryVoltage)} مم
+                    </div>
+                </div>
+            `;
+
+            secondaries.forEach((sec, index) => {
+                const totalTurns = Math.round(sec.voltage * turnsPerVolt);
+                const midTurns = sec.ct ? Math.round(totalTurns / 2) : null;
+                const current = power / sec.voltage;
+                
+                resultHTML += `
+                    <div class="coil-box">
+                        <h3>𓋼 الملف الثانوي ${index + 1} (${sec.voltage}V):</h3>
+                        <p>𓇻 عدد اللفات: ${totalTurns}</p>
+                        <p>𓃠 التيار: ${current.toFixed(2)}A</p>
+                        <div class="wire-details">
+                            𓏲 سمك السلك: ${findWireThickness(current)} مم
+                        </div>
+                        ${sec.ct ? `
+                            <div style="color:var(--accent); margin-top:10px;">
+                                𓍝 تفاصيل السنتر تاب:
+                                <div>• من 0V إلى ${sec.voltage/2}V: ${midTurns} لفة</div>
+                                <div>• من 0V إلى ${sec.voltage}V: ${totalTurns} لفة</div>
+                            </div>
+                        ` : ''}
+                        <div class="edit-section">
+                            <div class="edit-input-group">
+                                <input type="number" class="custom-current" placeholder="أدخل التيار المطلوب (A)">
+                                <button class="edit-btn" onclick="handleCustomCurrent(event)">حساب</button>
+                            </div>
+                            <div class="custom-result"></div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            document.getElementById('result').innerHTML = resultHTML;
+        }
+
+        function handleCustomCurrent(event) {
+            const button = event.target;
+            const coilBox = button.closest('.coil-box');
+            const input = coilBox.querySelector('.custom-current');
+            const resultDiv = coilBox.querySelector('.custom-result');
+            
+            if(input.value) {
+                const current = parseFloat(input.value);
+                resultDiv.innerHTML = `سمك السلك المطلوب: ${findCustomWire(current)} مم`;
+            }
+        }
+    </script>
+</body>
+</html>
